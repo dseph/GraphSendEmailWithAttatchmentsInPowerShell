@@ -26,6 +26,8 @@ $fileName = "TestAttachment_SpreadSheet.csv"
 #the attachement file path  - TODO: Set the below full path to the attachment
 $filePath = "C:\<path to file>\$fileName"
 
+# ---------------------------------------
+
 #Create the request body to obtain token (Delegate token requires username/password)
 $ReqTokenBody = @{
     Grant_Type    = "client_credentials"
@@ -40,21 +42,25 @@ $TokenResponse = Invoke-RestMethod -Method POST -Uri "https://login.microsoft.co
 
 $AuthHeader = @{'Authorization' = "Bearer $($TokenResponse.access_token)" }
 
+# ---------------------------------------
+
 # Generate the 'message' object in powershell memory
 $rawMessage = @{
-    subject="Test email from powershell- $((Get-Date).ToShortDateString())"
-    importance="Low"
-    body=@{
-        contentType="HTML"
-        content="Greetings\n\n\tPlease check if this email was received by the recipient!"
+    message = @{
+        subject      = "Test email from powershell- $((Get-Date).ToShortDateString())"
+        importance   = "Low"
+        body         = @{
+            contentType = "HTML"
+            content     = "Greetings\n\n\tPlease check if this email was received by the recipient!"
+        }
+        toRecipients = @(
+            @{
+                emailAddress = @{
+                    address = $recipient
+                }
+            })
     }
-    toRecipients= @(
-        @{
-            emailAddress=@{
-                address=$recipient
-            }
-        })
-    }
+}
 
 
 # Get byte[] array of file
@@ -85,9 +91,9 @@ Write-Host "Done with create message, The response:"
 # the object for "Create Upload Session" POST call. 
 $params = @{
     AttachmentItem = @{
-        AttachmentType="File"
-        Name=$fileName
-        size = $fileInBytes.Length
+        AttachmentType = "File"
+        Name           = $fileName
+        size           = $fileInBytes.Length
     }
 }
 
@@ -128,9 +134,9 @@ while ($fileLength -gt ($end + 1)) {
     write-host "`nContent Length: $($body.Length.ToString())"
     #headers for the upload chunk call, note that content-range is calulated to note the current bytes to be uploaded
     $headers = @{
-        'Content-Type' = "application/octet-stream"
+        'Content-Type'  = "application/octet-stream"
         #'Content-Length' = $body.Length.ToString()
-        'Content-Range'  = "bytes $start-$end/$fileLength"
+        'Content-Range' = "bytes $start-$end/$fileLength"
     }
     write-Host "`nbytes $start-$end/$fileLength | Index: $index and ChunkSize: $PartSizeBytes"
     
