@@ -1,0 +1,152 @@
+# GraphSendEmailWithAttatchmentsInPowerShell.ps1.txt
+#
+# This will send an email with a large attachment (over 3 megabytes) to a mailbox Graph calls from PowerShell
+#
+# You will need to modify this script and rename it in order to use it.  It is only provided as an example.
+#
+# Thanks to Corey Schneider in Graph for providing this sample.
+
+#The AppID or ClientID  - TODO: Set the below value
+$AppId = ""
+
+#The App Secret  - TODO: Set the below value
+$AppSecret = ""
+
+#The tenant id  - TODO: Set the below value
+$tenantID = ""
+
+#the sender's mailbox  - TODO: Set the below the address of the sending mailbox
+$mailSender = "sender@domain_a.com" 
+
+#the recipient mailbox  - TODO: Set the below the address of recipient
+$recipient = "recipient@domain_b_or_a.com"
+
+#the file name - TODO: Set the below the name of the file attachment
+$fileName = "TestAttachment_SpreadSheet.csv"
+#the attachement file path  - TODO: Set the below full path to the attachment
+$filePath = "C:\<path to file>\$fileName"
+
+#Create the request body to obtain token (Delegate token requires username/password)
+$ReqTokenBody = @{
+    Grant_Type    = "client_credentials"
+    Scope         = "https://graph.microsoft.com/.default"
+    client_Id     = $AppId
+    client_secret = $AppSecret
+}
+
+#Get Token response
+$TokenResponse = Invoke-RestMethod -Method POST -Uri "https://login.microsoft.com/$tenantID/oauth2/v2.0/token" -Body $ReqTokenBody
+
+
+$AuthHeader = @{'Authorization' = "Bearer $($TokenResponse.access_token)" }
+
+# Generate the 'message' object in powershell memory
+$rawMessage = @{
+    subject="Test email from powershell- $((Get-Date).ToShortDateString())"
+    importance="Low"
+    body=@{
+        contentType="HTML"
+        content="Greetings\n\n\tPlease check if this email was received by the recipient!"
+    }
+    toRecipients= @(
+        @{
+            emailAddress=@{
+                address=$recipient
+            }
+        })
+    }
+
+
+# Get byte[] array of file
+$fileInBytes = [System.IO.File]::ReadAllBytes($filePath)
+# Get byte[] array length
+$fileLength = $fileInBytes.Length
+# create message url
+$createMessageUrl = "https://graph.microsoft.com/v1.0/users/$mailSender/messages"
+
+
+# if file is less than 3mb, directly attach the item to the mail message before sending.
+if ($fileLength -le 3mb) {
+    <# Action to perform if the condition is true #>
+    $rawMessage.attachments = @(
+        @{
+
+        }
+    )
+}
+
+Write-Host "Calling Invoke-RestMethod to create a new message:"
+
+#generate the draft email
+$newMessage = Invoke-RestMethod -Uri $createMessageUrl -Body (ConvertTo-Json $rawMessage -depth 10) -Headers $AuthHeader -Method POST -ContentType "application/json"
+
+Write-Host "Done with create message, The response:"
+
+# the object for "Create Upload Session" POST call. 
+$params = @{
+    AttachmentItem = @{
+        AttachmentType="File"
+        Name=$fileName
+        size = $fileInBytes.Length
+    }
+}
+
+Write-Host "Attempting to create upload session" -ForegroundColor Yellow
+
+#endpoint to create upload session, using previouly generated Draft Email ID
+$createUploadUrl = "https://graph.microsoft.com/v1.0/users/$mailSender/messages/$($newmessage.Id)/attachments/createuploadsession"
+
+#the response from the create upload session
+$response = Invoke-RestMethod -Method Post -Uri $createUploadUrl -Headers $AuthHeader -Body (ConvertTo-Json $params -depth 10) -ContentType "application/json"
+
+# the url to upload the file 'chunks' to. 
+$uploadUrl = $response.uploadUrl
+
+## Split the file up
+$PartSizeBytes = 320 * 1024 # 327680
+$index = 0
+$start = 0 
+$end = 0
+
+# iterate over the file content bytes by chunks of 327680 bytes. 
+
+#while file's length is greater than current read stream carrot.
+while ($fileLength -gt ($end + 1)) {
+    # calculate the starting 'read' point
+    $start = $index * $PartSizeBytes
+    # if start index plus the chunk size, minus 1 is less than the total file length, end index is equal to start index plus content byte chunk length.
+    if (($start + $PartSizeBytes - 1) -lt $fileLength) {
+        $end = ($start + $PartSizeBytes - 1)
+    }
+    # else end index is equal to the total file size minus the already uploaded chunk sizes minus 1 
+    else {
+        $end = ($start + ($fileLength - ($index * $PartSizeBytes)) - 1)
+    }
+       
+    # the 'chunk' of byte contents between startIndex, and endIndex
+    [byte[]]$body = $fileInBytes[$start..$end]
+    write-host "`nContent Length: $($body.Length.ToString())"
+    #headers for the upload chunk call, note that content-range is calulated to note the current bytes to be uploaded
+    $headers = @{
+        'Content-Type' = "application/octet-stream"
+        #'Content-Length' = $body.Length.ToString()
+        'Content-Range'  = "bytes $start-$end/$fileLength"
+    }
+    write-Host "`nbytes $start-$end/$fileLength | Index: $index and ChunkSize: $PartSizeBytes"
+    
+    Write-Host "`nThe Upload URL:`t$uploadUrl"
+
+    # the actual chunk uploaded
+    $response = Invoke-WebRequest -Method Put -Uri $uploadUrl -Body $body -Headers $headers -ContentType 'application/json' -UseBasicParsing
+    Write-Host "The Response Object:`t$response"
+
+    #increment counter and proceed to 'next' loop iteration.
+    $index++
+}
+
+
+#send email:
+$sendResponse = Invoke-WebRequest -Method POST -Uri "https://graph.microsoft.com/v1.0/users/$mailSender/messages/$($newmessage.Id)/send" -Headers $AuthHeader -UseBasicParsing -ContentType 'application/json'
+
+#output response of send mail.
+$sendResponse
