@@ -45,23 +45,15 @@ $AuthHeader = @{'Authorization' = "Bearer $($TokenResponse.access_token)" }
 # ---------------------------------------
 
 # Generate the 'message' object in powershell memory
-$rawMessage = @{
-    message = @{
-        subject      = "Test email from powershell- $((Get-Date).ToShortDateString())"
-        importance   = "Low"
-        body         = @{
-            contentType = "HTML"
-            content     = "Greetings\n\n\tPlease check if this email was received by the recipient!"
-        }
-        toRecipients = @(
-            @{
-                emailAddress = @{
-                    address = $recipient
-                }
-            })
+ $rawMessage = @{
+    subject = "Test email from powershell- $((Get-Date).ToShortDateString())"
+    importance   = "Low"
+    body = @{
+        contentType = "HTML"
+        content = "Greetings\n\n\tPlease check if this email was received by the recipient!"
     }
+    toRecipients = @(@{ emailAddress = @{ address = $recipient } })
 }
-
 
 # Get byte[] array of file
 $fileInBytes = [System.IO.File]::ReadAllBytes($filePath)
