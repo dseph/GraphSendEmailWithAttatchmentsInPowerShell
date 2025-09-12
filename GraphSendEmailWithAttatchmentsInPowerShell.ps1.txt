@@ -32,6 +32,10 @@
 #     Set-Mailbox -Identity  {user mailbox address,etc}  -MaxSendSize 150mb -MaxReceiveSize 150mb 
 #     Example: Set-Mailbox -Identity  myuser@contoso.com   -MaxSendSize 150mb -MaxReceiveSize 150mb 
 #-----------------------------------------------------------------------------
+# For permissions try:
+#     Mail.ReadWrite
+#    Mail.Send
+#-----------------------------------------------------------------------------
 
 #The AppID or ClientID  - TODO: Set the below value
 $AppId = ""
@@ -175,3 +179,4 @@ $sendResponse = Invoke-WebRequest -Method POST -Uri "https://graph.microsoft.com
 
 #output response of send mail.
 $sendResponse
+
