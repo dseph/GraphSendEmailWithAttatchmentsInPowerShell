@@ -34,7 +34,7 @@
 #-----------------------------------------------------------------------------
 # For permissions try:
 #     Mail.ReadWrite
-#    Mail.Send
+#     Mail.Send
 #-----------------------------------------------------------------------------
 
 #The AppID or ClientID  - TODO: Set the below value
@@ -179,4 +179,5 @@ $sendResponse = Invoke-WebRequest -Method POST -Uri "https://graph.microsoft.com
 
 #output response of send mail.
 $sendResponse
+
 
