@@ -16,7 +16,7 @@
 # Watch message size limits on mailboxes:
 #
 # The mailbox send limits are 35mb unless they are increased. Graph works within the mailbox limit - this means even though it can send up to 150mb
-# that it cannot unless unless the mailbox send rate is increased. If you try to add a large attachment over this limit then you may get a 400 error
+# that it cannot unless the mailbox send rate is increased. If you try to add a large attachment over this limit then you may get a 400 error
 # and in the response body it will say your over the limit. If you try to add the large attachment to an email in Outlook, then it will display a dialog
 # saying its over the server limit.
 #  
