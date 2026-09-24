@@ -28,7 +28,7 @@
 #    Set-Mailbox -Identity {user mailbox address,etc} -MaxSendSize 150mb #default id 35mb for a mailbox - so up to the max Graph can handle which is 150mb
 #    Example: Set-Mailbox -Identity myuser@contoso.com  -MaxSendSize 150mb 
 #
-# For testying you may want to change both the send and receive sizes as shown here:
+# For testing you may want to change both the send and receive sizes as shown here:
 #     Set-Mailbox -Identity  {user mailbox address,etc}  -MaxSendSize 150mb -MaxReceiveSize 150mb 
 #     Example: Set-Mailbox -Identity  myuser@contoso.com   -MaxSendSize 150mb -MaxReceiveSize 150mb 
 #-----------------------------------------------------------------------------
